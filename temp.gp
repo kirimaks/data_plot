@@ -3,7 +3,9 @@
 #
 
 set terminal pngcairo size 600,300 enhanced font 'Verdana,10'
+
 set output '/tmp/graphs/temp.png'
+data_file = '/tmp/gnuplot/temp_data.txt'
 
 set grid
 set title 'Temperature Graphic'
@@ -14,4 +16,4 @@ set border linewidth 2
 set key off
 unset xtics
 
-plot '/tmp/gnuplot/temp_data.txt' with filledcurve x1 lt rgb "#FF8C00"
+plot data_file with filledcurve x1 lt rgb "#FF8C00"
