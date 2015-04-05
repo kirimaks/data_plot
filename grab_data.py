@@ -4,18 +4,16 @@
 import config
 import os.path
 import sys
-
+import time
 
 tasks = [ config.cpu_temp, config.load_average, config.network_statistic ]
 
 
-def regular_file(file_data):
+def get_data(file_data, cur_path):
     if __debug__:
-        print u'\t<<%s>>(regular file)' % file_data[u'in_file']
+        print u'\t<<%s>>' % cur_path
 
-    cur_path = os.path.join(file_data[u'path'], file_data[u'in_file'])
     cur_line = None
-
 
     # Reading.
     with open(cur_path) as cur_file:
@@ -31,37 +29,45 @@ def regular_file(file_data):
         cur_line = ''.join(cur_line)
 
 
-    # Writing.
-    cur_path = os.path.join(config.work_dir, file_data['out_file'])
-    with open(cur_path, 'a') as out_file:
+    # Return string for output file.
+    return cur_line
+
+
+def write_file(fp, cur_line):
+    if __debug__:
+        print 'Write: "%s" to "%s"' % (cur_line, fp)
+    with open(fp, 'a') as out_file:
         out_file.write(cur_line)
 
-
-
 # Return number of lines in a file.
-def file_len(f):
+def file_len(fp):
     num_lines = 0
 
-    with open(f) as fl:
+    with open(fp) as fl:
         for line in fl:
             num_lines += 1
 
     if __debug__:
-        print '\t\t%s : %d lines.' % (f, num_lines)
+        print '\t\t%s : %d lines.' % (fp, num_lines)
 
     return num_lines
 
 
-
-def truncate_file(f):
-    if file_len(f) >= config.max_lines_in_file: 
+def truncate_file(fp):
+    if file_len(fp) >= config.max_lines_in_file: 
         if __debug__:
-            print '\t\tTruncate file: %s' % f
+            print '\t\tTruncate file: %s' % fp
 
         # OS specific code.
         if sys.platform == 'linux2':
-            os.system('sed -i -e "1d" ' + f)
-            
+            os.system('sed -i -e "1d" ' + fp)
+
+def get_traffic(fp):
+    traff1 = get_data(task, fp)
+    time.sleep(1)
+    traff2 = get_data(task, fp)
+
+    return (int(traff2) - int(traff1)) / 1024
 
 
 
@@ -72,20 +78,54 @@ if not os.path.isdir(config.work_dir):
     os.mkdir(config.work_dir)
 
 
-
-
-################
-# Main program #
-################
-
+# Tasks.
 for task in tasks:
     if __debug__:
-        print '*** %s ***' % task[u'title']
+        print u'*** %s ***' % task[u'title']
 
-    if task[u'title'] == 'network_statistic':
-        for iface in  task[u'ifaces']:
-            print '\t[%s]' % iface
-    else:
-        regular_file(task)
-        # Use truncate only for regular temporary.
-        truncate_file(os.path.join(config.work_dir, task[u'out_file']))
+    out_file = None
+    cur_line = None
+
+    if task[u'title'] == u'network_statistic':
+        for iface in  task[u'ifaces']:  # Go for each interface.
+            if __debug__:
+                print u'\tRunning for: [%s]' % iface
+
+            # Calculate paths.
+            rx_path = os.path.join(task[u'path'][0], iface, task[u'path'][1], task[u'in_file'][0])
+            tx_path = os.path.join(task[u'path'][0], iface, task[u'path'][1], task[u'in_file'][1])
+
+            if __debug__:
+                print u'\t\tRx path: "%s"' % rx_path
+                print u'\t\tTx path: "%s"' % tx_path
+
+
+            # Get current rx, tx in bytes per sec.
+            cur_rx = get_traffic(rx_path)
+            cur_tx = get_traffic(tx_path)
+
+            if __debug__:
+                print u'\t\t\t\tCurrent rx for [%s]: %d kB/s' % (iface, cur_rx)
+                print u'\t\t\t\tCurrent tx for [%s]: %d kB/s' % (iface, cur_tx)
+
+            # Create line for writing.
+            cur_line = unicode(cur_rx) + u'\t' + unicode(cur_tx) + '\n'
+
+            if __debug__:
+                print u'String to write: [%s]' % cur_line
+
+            # Setting path for output file.
+            out_file = os.path.join( config.work_dir, unicode(iface) + u'_' + task[u'out_file'])
+
+            write_file(out_file, cur_line)
+            truncate_file(out_file)
+            
+
+    else:   # Regular files.
+        path_to_file = os.path.join(task['path'], task['in_file'])
+        cur_line = get_data(task, path_to_file)
+        out_file = os.path.join(config.work_dir, task['out_file'])
+
+        write_file(out_file, cur_line)
+        truncate_file(out_file)
+
