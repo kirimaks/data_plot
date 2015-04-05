@@ -83,9 +83,9 @@ for task in tasks:
     if __debug__:
         print u'*** %s ***' % task[u'title']
 
-    out_file = None
-    cur_line = None
+    out_file = cur_line = None
 
+    # Network interfaces.
     if task[u'title'] == u'network_statistic':
         for iface in  task[u'ifaces']:  # Go for each interface.
             if __debug__:
@@ -112,7 +112,7 @@ for task in tasks:
             cur_line = unicode(cur_rx) + u'\t' + unicode(cur_tx) + '\n'
 
             if __debug__:
-                print u'String to write: [%s]' % cur_line
+                print u'String to write: %s' % cur_line
 
             # Setting path for output file.
             out_file = os.path.join( config.work_dir, unicode(iface) + u'_' + task[u'out_file'])
@@ -121,7 +121,8 @@ for task in tasks:
             truncate_file(out_file)
             
 
-    else:   # Regular files.
+    # Regular files.
+    else:   
         path_to_file = os.path.join(task['path'], task['in_file'])
         cur_line = get_data(task, path_to_file)
         out_file = os.path.join(config.work_dir, task['out_file'])
