@@ -5,8 +5,9 @@ import config
 import os.path
 import sys
 import time
+import subprocess
 
-tasks = [ config.cpu_temp, config.load_average, config.network_statistic ]
+tasks = [ config.cpu_temp, config.load_average, config.network_statistic, config.memory_statistic, config.cpu_usage ]
 
 
 def get_data(file_data, cur_path):
@@ -35,9 +36,10 @@ def get_data(file_data, cur_path):
 
 def write_file(fp, cur_line):
     if __debug__:
-        print 'Write: "%s" to "%s"' % (cur_line, fp)
+        print 'Write: "%s" to "%s"' % (cur_line[:-1], fp)
     with open(fp, 'a') as out_file:
         out_file.write(cur_line)
+
 
 # Return number of lines in a file.
 def file_len(fp):
@@ -53,14 +55,27 @@ def file_len(fp):
     return num_lines
 
 
-def truncate_file(fp):
+def truncate_file(fp, lines_to_truncate = [1]):
     if file_len(fp) >= config.max_lines_in_file: 
         if __debug__:
             print '\t\tTruncate file: %s' % fp
 
         # OS specific code.
         if sys.platform == 'linux2':
-            os.system('sed -i -e "1d" ' + fp)
+            #os.system('sed -i -e "1d" ' + fp)
+
+            str_arg = u''
+            for t in lines_to_truncate:
+                str_arg += unicode(t) + ','
+
+            str_arg = str_arg[:-1]  # Delete last comma.
+
+            cmd = 'sed -i -e '+str_arg+u'd ' + fp
+
+            #print cmd
+            #sys.exit(1)
+            os.system(cmd)
+
 
 def get_traffic(fp):
     traff1 = get_data(task, fp)
@@ -81,7 +96,7 @@ if not os.path.isdir(config.work_dir):
 # Tasks.
 for task in tasks:
     if __debug__:
-        print u'*** %s ***' % task[u'title']
+        print u'\n\n*** %s ***' % task[u'title']
 
     out_file = cur_line = None
 
@@ -111,15 +126,35 @@ for task in tasks:
             # Create line for writing.
             cur_line = unicode(cur_rx) + u'\t' + unicode(cur_tx) + '\n'
 
-            if __debug__:
-                print u'String to write: %s' % cur_line
-
             # Setting path for output file.
             out_file = os.path.join( config.work_dir, unicode(iface) + u'_' + task[u'out_file'])
 
             write_file(out_file, cur_line)
             truncate_file(out_file)
-            
+
+    elif task[u'title'] == u'memory_statistic':
+
+        # Calculate Memory.
+        shell_out = subprocess.Popen("free|grep Mem|awk '{print $3}'", shell=True, stdout=subprocess.PIPE)
+        cur_line = shell_out.stdout.read()
+
+        # Calculate Swap.
+        shell_out = subprocess.Popen("free|grep Swap|awk '{print $3}'", shell=True, stdout=subprocess.PIPE)
+        cur_line = cur_line[:-1] + u'\t' + shell_out.stdout.read()
+
+        out_file = os.path.join(config.work_dir, task[u'out_file'])
+
+        write_file(out_file, cur_line)
+        truncate_file(out_file)
+
+    elif task[u'title'] == u'cpu_usage':
+        shell_out = subprocess.Popen("top -b -n 2|grep Cpu|awk '{print $2, $4, $6, $8, $10, $12, $14, $16}'", shell=True, stdout=subprocess.PIPE)
+        cur_line = shell_out.stdout.read()
+
+        out_file = os.path.join(config.work_dir, task[u'out_file'])
+
+        write_file(out_file, cur_line)
+        truncate_file(out_file, [1,2])
 
     # Regular files.
     else:   
