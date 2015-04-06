@@ -7,8 +7,6 @@ import sys
 import time
 import subprocess
 
-tasks = [ config.cpu_temp, config.load_average, config.network_statistic, config.memory_statistic, config.cpu_usage ]
-
 
 def get_data(file_data, cur_path):
     if __debug__:
@@ -62,18 +60,13 @@ def truncate_file(fp, lines_to_truncate = [1]):
 
         # OS specific code.
         if sys.platform == 'linux2':
-            #os.system('sed -i -e "1d" ' + fp)
 
             str_arg = u''
             for t in lines_to_truncate:
                 str_arg += unicode(t) + ','
 
             str_arg = str_arg[:-1]  # Delete last comma.
-
             cmd = 'sed -i -e '+str_arg+u'd ' + fp
-
-            #print cmd
-            #sys.exit(1)
             os.system(cmd)
 
 
@@ -94,7 +87,7 @@ if not os.path.isdir(config.work_dir):
 
 
 # Tasks.
-for task in tasks:
+for task in config.tasks:
     if __debug__:
         print u'\n\n*** %s ***' % task[u'title']
 
