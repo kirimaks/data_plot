@@ -4,157 +4,125 @@
 import config
 import os.path
 import sys
-import time
-import subprocess
+import sqlite3
+
+from tools import show_info
+
+def prepare_db(dbfile):
+
+    # Check file.
+    if not os.path.isfile(dbfile):
+        # Create database.
+        try:
+            if __debug__:
+                show_info((u'Create database', config.dbfile))
+            open(config.dbfile, u'w').close()
+        except IOError, e:
+            print u"Can't create file [%s]: %s" % (config.dbfile, e.args[1])
+            sys.exit(1)
+
+        # Create tables.
+        try:
+            if __debug__: show_info((u'Create tables', config.dbtables))
+
+            db_conn = sqlite3.connect(dbfile)
+
+            cur_conn = db_conn.cursor()
+
+            for table in config.dbtables:
+
+                if __debug__: show_info((u'Create table:', table), u'\t')
+
+                field = None
+                field_type = None
+                
+                if table == u'cpu_temp':
+                    field = u'Temp'
+                    field_type = u'REAL'
+                elif table == u'load_average':
+                    field = u'Data'
+                    field_type = u'TEXT'
+
+                cur_conn.execute(u'CREATE TABLE "%s"(Id INTEGER PRIMARY KEY, "%s" "%s", Date TEXT)' % (table, field, field_type))
+                        
+
+            db_conn.commit()
+            db_conn.close()
+
+        except sqlite3.Error, e:
+            print u'Error :%s' % e.args[0]
+            sys.exit(2)
+
+        finally:
+            if db_conn:
+                db_conn.close()
 
 
-def get_data(file_data, cur_path):
-    if __debug__:
-        print u'\t<<%s>>' % cur_path
+def check_workdir():
+    if not os.path.isdir(config.workdir):
+        if __debug__: show_info((u'Create working directory', config.workdir))
+        os.mkdir(config.workdir)
 
-    cur_line = None
 
-    # Reading.
+# Get data from file.
+def get_data(task):
+    cur_data = ''
+    cur_path = os.path.join(task[u'path'], task[u'in_file'])
+
+    if __debug__: show_info( (u'Open file', cur_path) , u'\t' )
+
     with open(cur_path) as cur_file:
-        cur_line = cur_file.readline()
-        if __debug__:
-            print u'\t\t%s' %  cur_line
+        cur_data = cur_file.readline()
+
+    # Prepare data for particular task.
+    if task[u'title'] == u'cpu_temp':
+        if __debug__: show_info( (u'Prepare data for', task[u'title']), u'\t' )
+        cur_data = list(cur_data)
+        cur_data.insert(2, u'.')
+        cur_data.remove(u'\n')
+        cur_data = u''.join(cur_data)
+
+    elif task[u'title'] == u'load_average':
+        if __debug__: show_info( (u'Prepare data for', task[u'title']), u'\t' )
+        cur_data = cur_data[:14]
+
+    return cur_data
 
 
-    # Prepare line for different tasks.
-    if file_data[u'title'] == u'cpu_temp':
-        cur_line = list(cur_line)
-        cur_line.insert(2, u'.')
-        cur_line = ''.join(cur_line)
+# Write data to database.
+def write_data(data, table):
+    if __debug__: show_info((u'Write data for', task[u'title']), ending=u'[' + data + u']\n')
+
+    conn = sqlite3.connect(config.dbfile)
+    with conn:
+        try:
+            cur_conn = conn.cursor()
+
+            field = None
+
+            if table == u'cpu_temp':
+                field = u'Temp'
+            elif table == u'load_average':
+                field = u'Data'
+
+            #cur_conn.execute('INSERT INTO "%s"("%s") VALUES("%s")' % (table, field, data) )
+            cur_conn.execute(u'INSERT INTO "%s"("%s","%s") VALUES("%s", datetime("now") )' % (table, field, u'Date', data) )
+
+            conn.commit()
+
+        except sqlite3.Error, e:
+            print u'Database error: %s' % e.args[0]
+            sys.exit(1)
+
+        finally:
+            if cur_conn:
+                cur_conn.close()
 
 
-    # Return string for output file.
-    return cur_line
+check_workdir()
+prepare_db(config.dbfile)
 
-
-def write_file(fp, cur_line):
-    if __debug__:
-        print 'Write: "%s" to "%s"' % (cur_line[:-1], fp)
-    with open(fp, 'a') as out_file:
-        out_file.write(cur_line)
-
-
-# Return number of lines in a file.
-def file_len(fp):
-    num_lines = 0
-
-    with open(fp) as fl:
-        for line in fl:
-            num_lines += 1
-
-    if __debug__:
-        print '\t\t%s : %d lines.' % (fp, num_lines)
-
-    return num_lines
-
-
-def truncate_file(fp, lines_to_truncate = [1]):
-    if file_len(fp) >= config.max_lines_in_file: 
-        if __debug__:
-            print '\t\tTruncate file: %s' % fp
-
-        # OS specific code.
-        if sys.platform == 'linux2':
-
-            str_arg = u''
-            for t in lines_to_truncate:
-                str_arg += unicode(t) + ','
-
-            str_arg = str_arg[:-1]  # Delete last comma.
-            cmd = 'sed -i -e '+str_arg+u'd ' + fp
-            os.system(cmd)
-
-
-def get_traffic(fp):
-    traff1 = get_data(task, fp)
-    time.sleep(1)
-    traff2 = get_data(task, fp)
-
-    return (int(traff2) - int(traff1)) / 1024
-
-
-
-# Check work directory and create if need.
-if not os.path.isdir(config.work_dir):
-    if __debug__:
-        print 'Create direcotry: %s' % config.work_dir
-    os.mkdir(config.work_dir)
-
-
-# Tasks.
 for task in config.tasks:
-    if __debug__:
-        print u'\n\n*** %s ***' % task[u'title']
-
-    out_file = cur_line = None
-
-    # Network interfaces.
-    if task[u'title'] == u'network_statistic':
-        for iface in  task[u'ifaces']:  # Go for each interface.
-            if __debug__:
-                print u'\tRunning for: [%s]' % iface
-
-            # Calculate paths.
-            rx_path = os.path.join(task[u'path'][0], iface, task[u'path'][1], task[u'in_file'][0])
-            tx_path = os.path.join(task[u'path'][0], iface, task[u'path'][1], task[u'in_file'][1])
-
-            if __debug__:
-                print u'\t\tRx path: "%s"' % rx_path
-                print u'\t\tTx path: "%s"' % tx_path
-
-
-            # Get current rx, tx in bytes per sec.
-            cur_rx = get_traffic(rx_path)
-            cur_tx = get_traffic(tx_path)
-
-            if __debug__:
-                print u'\t\t\t\tCurrent rx for [%s]: %d kB/s' % (iface, cur_rx)
-                print u'\t\t\t\tCurrent tx for [%s]: %d kB/s' % (iface, cur_tx)
-
-            # Create line for writing.
-            cur_line = unicode(cur_rx) + u'\t' + unicode(cur_tx) + '\n'
-
-            # Setting path for output file.
-            out_file = os.path.join( config.work_dir, unicode(iface) + u'_' + task[u'out_file'])
-
-            write_file(out_file, cur_line)
-            truncate_file(out_file)
-
-    elif task[u'title'] == u'memory_statistic':
-
-        # Calculate Memory.
-        shell_out = subprocess.Popen("free|grep Mem|awk '{print $3}'", shell=True, stdout=subprocess.PIPE)
-        cur_line = shell_out.stdout.read()
-
-        # Calculate Swap.
-        shell_out = subprocess.Popen("free|grep Swap|awk '{print $3}'", shell=True, stdout=subprocess.PIPE)
-        cur_line = cur_line[:-1] + u'\t' + shell_out.stdout.read()
-
-        out_file = os.path.join(config.work_dir, task[u'out_file'])
-
-        write_file(out_file, cur_line)
-        truncate_file(out_file)
-
-    elif task[u'title'] == u'cpu_usage':
-        shell_out = subprocess.Popen("top -b -n 2|grep Cpu|awk '{print $2, $4, $6, $8, $10, $12, $14, $16}'", shell=True, stdout=subprocess.PIPE)
-        cur_line = shell_out.stdout.read()
-
-        out_file = os.path.join(config.work_dir, task[u'out_file'])
-
-        write_file(out_file, cur_line)
-        truncate_file(out_file, [1,2])
-
-    # Regular files.
-    else:   
-        path_to_file = os.path.join(task['path'], task['in_file'])
-        cur_line = get_data(task, path_to_file)
-        out_file = os.path.join(config.work_dir, task['out_file'])
-
-        write_file(out_file, cur_line)
-        truncate_file(out_file)
-
+    if __debug__: show_info((u'Processing for', task[u'title']) )
+    data = get_data(task)
+    write_data(data, task[u'title'])

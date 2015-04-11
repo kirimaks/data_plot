@@ -1,42 +1,40 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Working directory
-work_dir = u'/tmp/data_plot'
-
-# Number of lines in output files.
-max_lines_in_file = 14 
+dbfile = '/tmp/plot.db'
+workdir = '/tmp/data_plot'
+dbtables = ["cpu_temp", "load_average"]
 
 cpu_temp = {
-    u'title'    :   u'cpu_temp',
-    u'path'     :   u'/sys/class/hwmon/hwmon0/',
-    u'in_file'  :   u'temp1_input',
-    u'out_file' :   u'cpu_temp.txt'
+    'title'     :   'cpu_temp',
+    'path'      :   '/sys/class/hwmon/hwmon0/',
+    'in_file'   :   'temp1_input',
+    'graph_file':   'cpu_temp.png'
 }
 
 load_average = {
-    u'title'    :   u'load_average',
-    u'path'     :   u'/proc',
-    u'in_file'  :   u'loadavg',
-    u'out_file' :   u'loadavg.txt'
+    'title'    :   'load_average',
+    'path'     :   '/proc',
+    'in_file'  :   'loadavg',
+    'graph_file':   'loadavg.png'
 }
 
 network_statistic = {
-    u'title'    :   u'network_statistic',
-    u'ifaces'   :   [u'lo', u'wlp1s0'],
-    u'path'     :   [u'/sys/class/net/', u'statistics/'],
-    u'in_file'  :   [u'rx_bytes', u'tx_bytes' ],
-    u'out_file' :   u'traffic.txt'
+    'title'    :   'network_statistic',
+    'ifaces'   :   ['lo', 'wlp1s0'],
+    'path'     :   ['/sys/class/net/', 'statistics/'],
+    'in_file'  :   ['rx_bytes', 'tx_bytes' ],
 }
 
 memory_statistic = {
-    u'title'    :   u'memory_statistic',
-    u'out_file' :   u'memory.txt'
+    'title'     :   'memory_statistic',
+    'path'      :   '/proc',     
+    'in_file'   :   'meminfo'
+
 }
 
 cpu_usage = {
-    u'title'    :   u'cpu_usage',
-    u'out_file' :   u'cpu_usage.txt'
+    'title'    :   'cpu_usage',
 }
 
-tasks = [ cpu_temp, load_average, network_statistic, memory_statistic, cpu_usage ]
+tasks = [ cpu_temp, load_average ]
