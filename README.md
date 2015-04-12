@@ -1,3 +1,8 @@
-data_plot
+<h1>data_plot</h1>
 
-Server monitoring with gnuplot
+<strong>Server monitoring with matplotlib.</strong>
+
+<img src=''/>
+<img src=''/>
+<img src=''/>
+<img src=''/>
