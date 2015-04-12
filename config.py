@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-dbfile = '/tmp/plot.db'
-workdir = '/tmp/data_plot'
-dbtables = ["cpu_temp", "load_average"]
+import os.path
+
+workdir = u'/tmp/data_plot'
+dbfile = u'plot.db'
+
+dbfile = os.path.join(workdir, dbfile)
 
 cpu_temp = {
     'title'     :   'cpu_temp',
@@ -21,7 +24,7 @@ load_average = {
 
 network_statistic = {
     'title'    :   'network_statistic',
-    'ifaces'   :   ['lo', 'wlp1s0'],
+    'ifaces'   :   [u'enp2s0', u'wlp1s0'],
     'path'     :   ['/sys/class/net/', 'statistics/'],
     'in_file'  :   ['rx_bytes', 'tx_bytes' ],
 }
@@ -30,11 +33,12 @@ memory_statistic = {
     'title'     :   'memory_statistic',
     'path'      :   '/proc',     
     'in_file'   :   'meminfo'
-
 }
 
 cpu_usage = {
     'title'    :   'cpu_usage',
 }
 
-tasks = [ cpu_temp, load_average ]
+tasks = [ cpu_temp, load_average, network_statistic ]
+
+dbtables = [task['title'] for task in tasks]

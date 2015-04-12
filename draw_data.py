@@ -4,62 +4,92 @@
 import sys
 import sqlite3
 import config
-from tools import show_info
+import tools
 import argparse
 from drawing import draw_data
 
-def select_data(task, cur_con):
-    cur_con.execute(u'SELECT * FROM "%s" LIMIT (select count(*) - %d FROM %s), (select count(*) from %s)' % \
-                    ( task[u'title'], cmdargs.m, task[u'title'], task[u'title']) )
+time_begin = tools.time.time()
 
-    cur_row = cur_con.fetchone()
-    data = []
-    x = []
-    y = []
-    z = []
+def get_data_from_db(task, cur_con, rows_limit, tab_col = None):
+    
+    data = { 
+        u'Time': [], 
+        u'f1'  : [],
+        u'f2'  : [], 
+        u'f3'  : [], 
+        u'f4'  : [],
+    }
 
-    while cur_row != None:
-        # Prepare data for particular task.
+    if task[u'title'] == u'cpu_temp':
+        tools.select_data(cur_con, task[u'title'], u'Time,Temp', rows_limit)
 
-        if task[u'title'] == u'cpu_temp':
-            data.append(cur_row[1])
-            cur_row = cur_con.fetchone()
+        tmp = cur_con.fetchone()
+        while tmp != None:
+            data[u'Time'].insert(0,tmp[0])
+            data[u'f1'].insert(0,tmp[1])
+            tmp = cur_con.fetchone()
 
-        elif task[u'title'] == u'load_average':
-            cur_str = cur_row[1].split(u' ')
 
-            x.append(cur_str[0])
-            y.append(cur_str[1])
-            z.append(cur_str[2])
+    elif task[u'title'] == u'load_average':
+        tools.select_data(cur_con, task[u'title'], u'Time,min_1,min_5,min_15', rows_limit)
 
-            cur_row = cur_con.fetchone()
+        tmp = cur_con.fetchone()
+        while tmp != None:
+            data[u'Time'].insert(0,tmp[0])
+            data[u'f1'].insert(0,tmp[1])
+            data[u'f2'].insert(0,tmp[2])
+            data[u'f3'].insert(0,tmp[3])
+            tmp = cur_con.fetchone()
 
-            if cur_row == None:
-                data.append(x)
-                data.append(y)
-                data.append(z)
+
+    elif task[u'title'] == u'network_statistic':
+
+        for fl in task[u'in_file']:
+            cur_col = tab_col + '_' + fl[0:2]
+            tools.select_data(cur_con, task[u'title'], u'Time,' + cur_col, rows_limit)
+
+            tmp = cur_con.fetchone()
+            while tmp != None:
+                if fl == u'rx_bytes':
+                    data[u'Time'].insert(0,tmp[0])
+                    data[u'f1'].insert(0,tmp[1])
+                else:
+                    data[u'f2'].insert(0,tmp[1])
+
+                tmp = cur_con.fetchone()
+                
 
     return data
 
 
+
 parser = argparse.ArgumentParser(description=u'Create graphics.', epilog=u'The End.')
-parser.add_argument(u'-m', type=int, default=121, help=u'set how many minutes to show.')
+parser.add_argument(u'-m', type=int, default=120, help=u'set how many minutes to show.')
 cmdargs = parser.parse_args()
-if __debug__: show_info((u'Show minutes', cmdargs.m)) 
+
+
+tools.log.info(u'Show for %d minutes.', cmdargs.m)
 
 
 try:
-    if __debug__ : show_info( (u'Connect to', config.dbfile) )
+    tools.log.debug(u'Connect to: [%s]\n', config.dbfile) 
     conn = sqlite3.connect(config.dbfile)
 
     with conn:
         cur_con = conn.cursor()
 
         for task in config.tasks:
-            if __debug__ : show_info((u'Processing for', task[u'title']))
+            tools.log.info(u'Processing for (%s)', task[u'title'])
 
-            data = select_data(task, cur_con)
-            draw_data(data, task, cmdargs.m)
+            if task[u'title'] == u'network_statistic':
+                for iface in task[u'ifaces']:
+                    data = get_data_from_db(task, cur_con, cmdargs.m, tab_col = iface)
+                    #print data
+                    draw_data(data, task, cmdargs.m, tab_col = iface)
+
+            else:
+                data = get_data_from_db(task, cur_con, cmdargs.m)
+                draw_data(data, task, cmdargs.m)
 
 
 except sqlite3.Error, e: 
@@ -68,3 +98,7 @@ except sqlite3.Error, e:
 
 finally:
     if conn: conn.close()
+
+
+
+tools.log.info('(%s) execution time: [%s]\n', __file__, tools.time.time() - tools.time_begin)

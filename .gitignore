@@ -1,6 +1,2 @@
-config.pyc
-config.pyo
-
-drawing.pyc
-tools.pyc
-tools.pyo
+*.pyc
+*.pyo

@@ -5,108 +5,74 @@ import config
 import os.path
 import sys
 import sqlite3
+import tools
+from preparation import prepare_db, check_workdir
 
-from tools import show_info
+time_begin = tools.time.time()
 
-def prepare_db(dbfile):
+def read_file(fp):
+    tools.log.debug(u'Open file: [%s]', fp)
 
-    # Check file.
-    if not os.path.isfile(dbfile):
-        # Create database.
-        try:
-            if __debug__:
-                show_info((u'Create database', config.dbfile))
-            open(config.dbfile, u'w').close()
-        except IOError, e:
-            print u"Can't create file [%s]: %s" % (config.dbfile, e.args[1])
-            sys.exit(1)
+    with open(fp) as cur_file:
+        cur_data = cur_file.readline()
 
-        # Create tables.
-        try:
-            if __debug__: show_info((u'Create tables', config.dbtables))
-
-            db_conn = sqlite3.connect(dbfile)
-
-            cur_conn = db_conn.cursor()
-
-            for table in config.dbtables:
-
-                if __debug__: show_info((u'Create table:', table), u'\t')
-
-                field = None
-                field_type = None
-                
-                if table == u'cpu_temp':
-                    field = u'Temp'
-                    field_type = u'REAL'
-                elif table == u'load_average':
-                    field = u'Data'
-                    field_type = u'TEXT'
-
-                cur_conn.execute(u'CREATE TABLE "%s"(Id INTEGER PRIMARY KEY, "%s" "%s", Date TEXT)' % (table, field, field_type))
-                        
-
-            db_conn.commit()
-            db_conn.close()
-
-        except sqlite3.Error, e:
-            print u'Error :%s' % e.args[0]
-            sys.exit(2)
-
-        finally:
-            if db_conn:
-                db_conn.close()
-
-
-def check_workdir():
-    if not os.path.isdir(config.workdir):
-        if __debug__: show_info((u'Create working directory', config.workdir))
-        os.mkdir(config.workdir)
-
+    return cur_data
 
 # Get data from file.
-def get_data(task):
-    cur_data = ''
-    cur_path = os.path.join(task[u'path'], task[u'in_file'])
+def get_data(task, cur_path):
+    cur_data = u''
 
-    if __debug__: show_info( (u'Open file', cur_path) , u'\t' )
+    tools.log.debug(u'Prepare data for: [%s]', task[u'title'])
 
-    with open(cur_path) as cur_file:
-        cur_data = cur_file.readline()
+    cur_data = read_file(cur_path)
 
     # Prepare data for particular task.
     if task[u'title'] == u'cpu_temp':
-        if __debug__: show_info( (u'Prepare data for', task[u'title']), u'\t' )
         cur_data = list(cur_data)
         cur_data.insert(2, u'.')
         cur_data.remove(u'\n')
         cur_data = u''.join(cur_data)
 
     elif task[u'title'] == u'load_average':
-        if __debug__: show_info( (u'Prepare data for', task[u'title']), u'\t' )
         cur_data = cur_data[:14]
 
     return cur_data
 
+def get_net_data(fp, iface):
+    sc = 1
+    cur_data = u''
+    tools.log.debug(u'Prepare network data for: [%s]', iface)
+
+    d1 = read_file(fp)
+    tools.log.info('Waiting %dsec.', sc)
+    tools.time.sleep(sc)
+    d2 = read_file(fp)
+
+    cur_data = (int(d2) - int(d1)) / 1024
+    
+    return cur_data
+
 
 # Write data to database.
-def write_data(data, table):
-    if __debug__: show_info((u'Write data for', task[u'title']), ending=u'[' + data + u']\n')
+def write_data(data, table, tab_col = None):
+    tools.log.debug(u'Write data (%s) for [%s]', data, task[u'title'])
 
     conn = sqlite3.connect(config.dbfile)
     with conn:
         try:
             cur_conn = conn.cursor()
 
-            field = None
-
             if table == u'cpu_temp':
-                field = u'Temp'
-            elif table == u'load_average':
-                field = u'Data'
+                tools.insert_into( cur_conn, table, u'Temp', data )
 
-            #cur_conn.execute('INSERT INTO "%s"("%s") VALUES("%s")' % (table, field, data) )
-            cur_conn.execute(u'INSERT INTO "%s"("%s","%s") VALUES("%s", datetime("now") )' % (table, field, u'Date', data) )
+            elif table == u'load_average':
+                data = data.split(' ')
+                data_str = data[0] + ',' + data[1] + ',' + data[2]
+                tools.insert_into( cur_conn, table, u'min_1,min_5,min_15', data_str )
+
+            elif table == u'network_statistic':
+                tools.insert_into( cur_conn, table, tab_col, str(data))
+                
 
             conn.commit()
 
@@ -122,7 +88,22 @@ def write_data(data, table):
 check_workdir()
 prepare_db(config.dbfile)
 
+
 for task in config.tasks:
-    if __debug__: show_info((u'Processing for', task[u'title']) )
-    data = get_data(task)
-    write_data(data, task[u'title'])
+    data = None
+    tools.log.info(u'Processing for: [%s]', task[u'title'])
+
+    if task[u'title'] == 'network_statistic':
+        for iface in config.network_statistic[u'ifaces']:
+            for stat_fl in task[u'in_file']:
+                data = get_net_data(os.path.join(task[u'path'][0], iface, task[u'path'][1], stat_fl), iface)
+                write_data(data, task[u'title'], tab_col = iface + '_' + stat_fl[:2])
+
+    else:
+        data = get_data(task, os.path.join(task[u'path'], task[u'in_file']))
+        write_data(data, task[u'title'])
+
+
+
+
+tools.log.info('(%s) execution time: [%s]\n', __file__, tools.time.time() - tools.time_begin)
