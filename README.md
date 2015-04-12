@@ -1,6 +1,6 @@
 <h1>data_plot</h1>
 
-<strong>Server monitoring with matplotlib.</strong>
+<strong>Server monitoring with matplotlib and sqlite.</strong>
 
 <img src='https://raw.githubusercontent.com/kirimaks/data_plot/master/pics/cpu_temp.png'/>
 <img src='https://raw.githubusercontent.com/kirimaks/data_plot/master/pics/enp2s0_io.png'/>
