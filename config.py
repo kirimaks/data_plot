@@ -24,7 +24,7 @@ load_average = {
 
 network_statistic = {
     'title'    :   'network_statistic',
-    'ifaces'   :   [u'enp2s0', u'wlp1s0'],
+    'ifaces'   :   [u'wlp1s0'],
     'path'     :   ['/sys/class/net/', 'statistics/'],
     'in_file'  :   ['rx_bytes', 'tx_bytes' ],
 }

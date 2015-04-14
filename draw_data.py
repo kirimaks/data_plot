@@ -12,6 +12,9 @@ time_begin = tools.time.time()
 
 def get_data_from_db(task, cur_con, rows_limit, tab_col = None):
     
+    # Closure for "select_data" fuction.
+    select = lambda cols : tools.select_data(cur_con, task[u'title'], cols, rows_limit)
+
     data = { 
         u'Time': [], 
         u'f1'  : [],
@@ -21,7 +24,8 @@ def get_data_from_db(task, cur_con, rows_limit, tab_col = None):
     }
 
     if task[u'title'] == u'cpu_temp':
-        tools.select_data(cur_con, task[u'title'], u'Time,Temp', rows_limit)
+        #tools.select_data(cur_con, task[u'title'], u'Time,Temp', rows_limit)
+        select(u'Time,Temp')
 
         tmp = cur_con.fetchone()
         while tmp != None:
@@ -31,7 +35,8 @@ def get_data_from_db(task, cur_con, rows_limit, tab_col = None):
 
 
     elif task[u'title'] == u'load_average':
-        tools.select_data(cur_con, task[u'title'], u'Time,min_1,min_5,min_15', rows_limit)
+        #tools.select_data(cur_con, task[u'title'], u'Time,min_1,min_5,min_15', rows_limit)
+        select(u'Time,min_1,min_5,min_15')
 
         tmp = cur_con.fetchone()
         while tmp != None:
@@ -46,7 +51,8 @@ def get_data_from_db(task, cur_con, rows_limit, tab_col = None):
 
         for fl in task[u'in_file']:
             cur_col = tab_col + '_' + fl[0:2]
-            tools.select_data(cur_con, task[u'title'], u'Time,' + cur_col, rows_limit)
+            #tools.select_data(cur_con, task[u'title'], u'Time,' + cur_col, rows_limit)
+            select(u'Time,' + cur_col)
 
             tmp = cur_con.fetchone()
             while tmp != None:
@@ -84,7 +90,6 @@ try:
             if task[u'title'] == u'network_statistic':
                 for iface in task[u'ifaces']:
                     data = get_data_from_db(task, cur_con, cmdargs.m, tab_col = iface)
-                    #print data
                     draw_data(data, task, cmdargs.m, tab_col = iface)
 
             else:

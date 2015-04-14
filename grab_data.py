@@ -49,6 +49,9 @@ def get_net_data(fp, iface):
     d2 = read_file(fp)
 
     cur_data = (int(d2) - int(d1)) / 1024
+
+    if cur_data < 0:
+        cur_data = 0
     
     return cur_data
 
