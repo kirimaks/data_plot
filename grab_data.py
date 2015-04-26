@@ -6,7 +6,9 @@ import os.path
 import sys
 import sqlite3
 import tools
-from preparation import prepare_db, check_workdir
+#from preparation import prepare_db, check_workdir
+import argparse
+#import time
 
 time_begin = tools.time.time()
 
@@ -87,26 +89,50 @@ def write_data(data, table, tab_col = None):
             if cur_conn:
                 cur_conn.close()
 
+if __name__ == '__main__':
 
-check_workdir()
-prepare_db(config.dbfile)
-
-
-for task in config.tasks:
-    data = None
-    tools.log.info(u'Processing for: [%s]', task[u'title'])
-
-    if task[u'title'] == 'network_statistic':
-        for iface in config.network_statistic[u'ifaces']:
-            for stat_fl in task[u'in_file']:
-                data = get_net_data(os.path.join(task[u'path'][0], iface, task[u'path'][1], stat_fl), iface)
-                write_data(data, task[u'title'], tab_col = iface + '_' + stat_fl[:2])
-
-    else:
-        data = get_data(task, os.path.join(task[u'path'], task[u'in_file']))
-        write_data(data, task[u'title'])
+    # Prepare arguments.
+    args = argparse.ArgumentParser(description=u'Calculate data from files and write to database.')
+    args.add_argument(u'-v', '--version', action='version', version='%(prog)s 2.0')
+    args.add_argument(u'-d', u'--debug', metavar=u'N', type=int, default=50, \
+                        help=u'set debug level: 50 - Critical, 40 - ERROR, WARNING - 30, INFO - 20, DEBUG - 10')
+    cmdargs = args.parse_args()
 
 
+    # Create Log_tool and Db_tool (open db) here.
+    log_tool = tools.Log_tool(cmdargs.debug)            # Create log tool with apropriate debug level.
+    db_tool = tools.Db_tool(config.dbfile, log_tool)
+
+    sys.exit(0)
+
+    #log_tool.info(['Hello %s from log tool, with debug level %d!', u'kirimaks', cmdargs.debug])
+    #log_tool.debug(['Hello %s from log tool, with debug level %d!', u'kirimaks', cmdargs.debug])
+    #sys.exit(0)
 
 
-tools.log.info('(%s) execution time: [%s]\n', __file__, tools.time.time() - tools.time_begin)
+    # Check workdir and database.
+    #check_workdir()
+    #prepare_db(config.dbfile)
+
+
+
+    '''
+    for task in config.tasks:
+        data = None
+        tools.log.info(u'Processing for: [%s]', task[u'title'])
+
+        if task[u'title'] == 'network_statistic':
+            for iface in config.network_statistic[u'ifaces']:
+                for stat_fl in task[u'in_file']:
+                    data = get_net_data(os.path.join(task[u'path'][0], iface, task[u'path'][1], stat_fl), iface)
+                    write_data(data, task[u'title'], tab_col = iface + '_' + stat_fl[:2])
+
+        else:
+            data = get_data(task, os.path.join(task[u'path'], task[u'in_file']))
+            write_data(data, task[u'title'])
+    '''
+
+
+
+
+    tools.log.info('(%s) execution time: [%s]\n', __file__, tools.time.time() - tools.time_begin)

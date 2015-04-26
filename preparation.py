@@ -8,6 +8,8 @@ time_begin = tools.time.time()
 
 def prepare_db(dbfile):
 
+    # TODO: add closures to 'add_column'
+
     if not os.path.isfile(dbfile):
         tools.log.debug('Create database: [%s]', dbfile)
 
