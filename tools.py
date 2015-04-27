@@ -57,32 +57,37 @@ import sys
 
 class Db_tool(object):
     
-    def __init__( self, db_file, log_tool ):
-        log_tool.debug( [u'Open database file [%s]', db_file] )
-        try:
-            self.__conn = sqlite3.connect(db_file)
-        except sqlite3.OperationalError:
-            log_tool.debug( ['Create database file: [%s]', db_file] )
-            self.__conn = None
-            sys.exit(1)
+    # TODO: In sqlite need open and close db in one queue.
+    def __init__(self, db_file, log_tool):
+        self.__db_file = db_file
+        self.__log_tool = log_tool
 
-    def __del__(self):
-        if self.__conn:
-            print u'Close database...'
-            self.__conn.close()
-        else:
-            print u'Nothing to closing...'
+        # TODO: Check if file exist here, and create if need.
+        # NOTE: Sqlite3 creates file if not exist. 
 
-    def create_table(cur, tab_name):
+    def open_db(self):
+        log_tool.debug( [u'Opening database file [%s]', db_file] )
+        self.__conn = sqlite3.connect(self.__db_file)
+
+    def close_db(self):
         pass
 
-    def add_column(cur, tab_name, col_name, col_type):
+    def create_table(self, self.__cur, tab_name):
+        self.open_db()
+        #
+        #
+        #
+        #
+        self.close_db()
         pass
 
-    def insert_into(cur, tab_name, col_name, data):
+    def add_column(self, self.__cur, tab_name, col_name, col_type):
         pass
 
-    def select_data(cur, tab_name, cols, rows_limit):
+    def insert_into(self, self.__cur, tab_name, col_name, data):
+        pass
+
+    def select_data(self, self.__cur, tab_name, cols, rows_limit):
         pass
 
 
