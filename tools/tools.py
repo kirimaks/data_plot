@@ -31,64 +31,8 @@ time_begin = time.time()
 #log.info('(%s) execution time: [%s]\n', __file__, time.time() - time_begin)
 
 
-import logging
-
-class Log_tool(object):
-    
-    def __init__(self, level=50):
-        logging.basicConfig( level=level, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%I:%M:%S' )
-
-    def info(self, args):
-        logging.info(*args)
-
-    def debug(self, args):
-        logging.debug(*args)
-
-    def error(self, args):
-        logging.error(*args)
-
-    def crit(self, args):
-        logging.critical(*args)
 
 
-
-import sqlite3
-import sys
-
-class Db_tool(object):
-    
-    # TODO: In sqlite need open and close db in one queue.
-    def __init__(self, db_file, log_tool):
-        self.__db_file = db_file
-        self.__log_tool = log_tool
-
-        # TODO: Check if file exist here, and create if need.
-        # NOTE: Sqlite3 creates file if not exist. 
-
-    def open_db(self):
-        log_tool.debug( [u'Opening database file [%s]', db_file] )
-        self.__conn = sqlite3.connect(self.__db_file)
-
-    def close_db(self):
-        pass
-
-    def create_table(self, self.__cur, tab_name):
-        self.open_db()
-        #
-        #
-        #
-        #
-        self.close_db()
-        pass
-
-    def add_column(self, self.__cur, tab_name, col_name, col_type):
-        pass
-
-    def insert_into(self, self.__cur, tab_name, col_name, data):
-        pass
-
-    def select_data(self, self.__cur, tab_name, cols, rows_limit):
-        pass
 
 
 if __name__ == u'__main__':
