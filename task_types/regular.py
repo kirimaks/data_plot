@@ -36,7 +36,7 @@ class CpuTemp(object):
 
 
     @staticmethod
-    def write_data(tab_name, cur_data, db_tool, log_tool):
+    def write_data(tab_name, cur_data, db_tool, log_tool): # Inherided in LoadAverage.
 
         #----------- Calculate string for insertion -----------------
         fields = u'('
@@ -84,8 +84,6 @@ class LoadAverage(CpuTemp):
 
 
 
-class Network_file(object):
-    pass
 
 class Regular_Task(object):
     # Regular task, just read data from one file.
@@ -123,5 +121,3 @@ class Regular_Task(object):
             LoadAverage.write_data( u'LoadAverage', self.__cur_data, self.__db_tool, self.__log_tool )
 
 
-class Network_Task(Regular_Task):
-    pass

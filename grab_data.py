@@ -7,7 +7,7 @@ time_begin = time.time()
 
 import tools
 import argparse
-import tasks_types
+import task_types
 import ConfigParser
 
 
@@ -43,17 +43,16 @@ if __name__ == '__main__':
 
         
         if cur_task in conf.get(u'Basic', u'network_interfaces'): # Processing for network interface.
-            #net_task = types.Network_Task(cur_task, log_tool)
-            #net_task.read_data()
-            #net_task.write_data()
-            pass
+            net_task = task_types.Network_Task( cur_task, conf, log_tool, db_tool )
+            net_task.read_data()
+            net_task.write_data()
         
         
         else:   # Processing for regular file. 
-            reg_task = tasks_types.Regular_Task(cur_task, conf, log_tool, db_tool)
+            reg_task = task_types.Regular_Task( cur_task, conf, log_tool, db_tool )
             reg_task.read_data()
             reg_task.write_data()
 
 
-    log_tool.debug(['(%s) execution time: [%s]\n', __file__, time.time() - time_begin])
+    log_tool.debug(['(%s) execution time: [%s]', __file__, time.time() - time_begin])
 

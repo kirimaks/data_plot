@@ -99,7 +99,7 @@ class Db_tool(object):
         with self.db_path as conn:
             cur = conn.cursor()
             cmd = u'INSERT INTO ' + tab_name + fields + u' VALUES' + values
-            print cmd
+            #self.__log_tool.debug(['%s', cmd])
             cur.execute(cmd)
 
     def select_data(self, tab_name, cols, rows_limit):
