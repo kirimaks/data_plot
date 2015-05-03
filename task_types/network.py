@@ -1,10 +1,31 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+import time
 import os.path
+import regular  # Write_data function.
 
-class Network_File(object):
-    pass
+class Network_File(regular.CpuTemp):
+    # Need write_data method from CpuTemp.
+
+    @staticmethod
+    def get_interface_id(interface, db_tool, log_tool ):
+        
+        data = db_tool.select_data_where( u'Network_Interfaces', u'Name, Id', u'Name', interface ).fetchone()
+
+        #if len(data) == 0:
+        if data == None:
+            # Create a record about interface.
+            log_tool.debug([u'Create record for [%s] interface.', interface])
+            field = u'(Name)'
+            value = u'("' + unicode(interface) + u'")'
+            db_tool.insert_into(u'Network_Interfaces', field, value)
+            data = db_tool.select_data_where( u'Network_Interfaces', u'Name, Id', u'Name', interface ).fetchone()
+
+        if len(data) == 0:
+            log_tool.crit([u"Can't get information from database."])
+
+        return data
 
 class Network_Task(object):
 
@@ -16,10 +37,12 @@ class Network_Task(object):
         self.__db_tool   = db_tool
         self.__config    = config_file
 
-        self.__iface_stat_data = {}
+        self.__network_data = {}
 
 
     def read_data(self):
+        # Reading data from network interface.
+
         list_of_stat_types = self.__config.get(u'Basic', u'network_stat_types').split(u',')
 
         for stat_type in list_of_stat_types:
@@ -30,10 +53,36 @@ class Network_Task(object):
             
             # Create path to network file.
             for io_path in [ u'rx_', u'tx_' ]:
-                full_path = os.path.join(u'/sys/class/net/', self.__interface, u'statistic', io_path + stat_type) 
-                print full_path
+                full_path = os.path.join(u'/sys/class/net/', self.__interface, u'statistics', io_path + stat_type) 
+
+                data1 = data2 = 0
+
+                try:
+                    with open(full_path) as fp:
+                        data1 = int(fp.readline())
+                        fp.seek(0)
+                        time.sleep(1)
+                        data2 = int(fp.readline())
+
+                except IOError as Exc:
+                    self.__log_tool.crit([u'[%s], %s', Exc.filename, Exc.args[1] ])
+                    
+                data = int(data2 - data1)
+
+                data = 0 if data < 0 else data
+
+                self.__network_data[io_path + stat_type] = data / 1024 if stat_type == u'bytes' else data
 
 
     def write_data(self):
-        pass
+        # Get interfaces id.
+        Interface_data = Network_File.get_interface_id( self.__interface, self.__db_tool, self.__log_tool )
+
+        self.__network_data[u'InterfaceId'] = Interface_data[1]
+
+        #print self.__network_data
+
+        # Write network_data.
+        Network_File.write_data( u'Network_Statistic', self.__network_data, self.__db_tool, self.__log_tool )
+
 

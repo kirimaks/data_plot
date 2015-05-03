@@ -52,18 +52,19 @@ class Db_tool(object):
                             Time        = u'TEXT' 
         )
         self.create_table(  u'Network_Interfaces', 
-                            Id      = u'INTEGER PIRMARY KEY', 
+                            Id      = u'INTEGER PRIMARY KEY', 
                             Name    = u'TEXT' 
         ) 
         self.create_table(  u'Network_Statistic', 
                             Id          = u'INTEGER PRIMARY KEY', 
                             InterfaceId = u'INTEGER',
-                            rx_io       = u'INTEGER',  
-                            tx_io       = u'INTEGER',
-                            pkg_rx      = u'INTEGER', 
-                            pkg_tx      = u'INTEGER',
-                            err_rx      = u'INTEGER', 
-                            err_tx      = u'INTEGER' 
+                            rx_bytes    = u'INTEGER',  
+                            tx_bytes    = u'INTEGER',
+                            rx_packets  = u'INTEGER', 
+                            tx_packets  = u'INTEGER',
+                            rx_errors   = u'INTEGER', 
+                            tx_errors   = u'INTEGER', 
+                            Time        = u'TEXT'
         ) 
         #--------------------------------------------------------------------------------------
 
@@ -99,13 +100,15 @@ class Db_tool(object):
         with self.db_path as conn:
             cur = conn.cursor()
             cmd = u'INSERT INTO ' + tab_name + fields + u' VALUES' + values
-            #self.__log_tool.debug(['%s', cmd])
+            self.__log_tool.debug(['%s', cmd])
             cur.execute(cmd)
 
-    def select_data(self, tab_name, cols, rows_limit):
+    def select_data_where( self, tab_name, col, where_col, where_pattern):
         with self.db_path as conn:
             cur = conn.cursor()
-            cur.execute('')
+            cmd = u'SELECT ' + col + u' FROM ' + tab_name + u' WHERE ' + where_col + u' == ' + '"' + where_pattern + '"'
+            self.__log_tool.debug(['%s', cmd])
+            return cur.execute(cmd)
 
 if __name__ == u'__main__':
     print u'Test'

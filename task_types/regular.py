@@ -48,7 +48,8 @@ class CpuTemp(object):
             if len(values) > 1:
                 values += u', '
             fields += k
-            values += cur_data[k]
+            #values += cur_data[k]
+            values += unicode(cur_data[k])
 
         fields += u', Time'
         values += u", time('now', 'localtime')"
