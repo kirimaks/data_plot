@@ -1,14 +1,17 @@
 import sqlite3
 import os, os.path
+import re
 
 class Db_tool(object):
+    # TODO: Add truncate_db method (keep database small size).
     
-    def __init__(self, db_dir, log_tool):
+    def __init__(self, db_dir, log_tool, config_file, recreate_db):
         self.__log_tool = log_tool
         self.__db_file  = u'data.db'    # Default database file name.
         self.__db_path  = os.path.join(db_dir, self.__db_file)
+        self.__conf     = config_file
 
-        if not os.path.isfile(self.__db_path) or not os.path.isdir(db_dir):
+        if not os.path.isfile(self.__db_path) or not os.path.isdir(db_dir) or recreate_db:
             self.initdb(db_dir, self.__db_path)
 
     def initdb(self, db_dir, db_path):
@@ -31,7 +34,22 @@ class Db_tool(object):
                 self.__log_tool.crit([u'[%s], exit...', Exc.args[1]])
         #--------------------------------------------------------------------------------------
 
+
         #-------------- Create necessary tables. ----------------------------------------------
+        # TODO: generage sensors list from file. 
+
+        ### Calculate number of sensors ###
+        db_string = { u'Id' : u'INTEGER PRIMARY KEY', u'Time' : u'TEXT' } 
+
+        # TODO: test about sensorN lower and upper case.
+        sensors_pattern = re.compile(u'sensor\d')
+        for item in self.__conf.items(u'CpuTemp'):
+            if sensors_pattern.search(item[0]):
+                db_string[item[0]] = u'REAL'
+
+        self.create_table( u'CpuTemp', **db_string )
+
+        '''
         self.create_table(  u'CpuTemp', 
                             Id          = u'INTEGER PRIMARY KEY', 
                             Time        = u'TEXT',
@@ -44,6 +62,8 @@ class Db_tool(object):
                             Sensor6     = u'REAL', 
                             Sensor7     = u'REAL' 
         )
+        '''
+
         self.create_table(  u'LoadAverage', 
                             Id          = u'INTEGER PRIMARY KEY', 
                             Load_1min   = u'REAL', 
@@ -87,6 +107,8 @@ class Db_tool(object):
 
         cmd = u'CREATE TABLE ' + tab_name + u' ' + field_string
 
+        self.__log_tool.debug( [ u'[%s]', cmd ] )
+
         with self.db_path as conn:
             cur = conn.cursor()
             cur.execute(cmd)
@@ -101,7 +123,10 @@ class Db_tool(object):
             cur = conn.cursor()
             cmd = u'INSERT INTO ' + tab_name + fields + u' VALUES' + values
             self.__log_tool.debug(['%s', cmd])
-            cur.execute(cmd)
+            try:
+                cur.execute(cmd)
+            except sqlite3.OperationalError as Exc:
+                self.__log_tool.crit([u'%s. Use --initdb for recreate database.', Exc.message])
 
     def select_data_where( self, tab_name, col, where_col, where_pattern):
         with self.db_path as conn:
