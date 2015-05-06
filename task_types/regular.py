@@ -8,6 +8,7 @@ class CpuTemp(object):
     # Reading and preparing data for CpuTemp task.
     @staticmethod
     def get_data(config_file, log_tool):
+        ''' Reading data from file. '''
         
         #---------- Create list of sensors. -------------------------------------
         sensors = {}
@@ -37,6 +38,7 @@ class CpuTemp(object):
 
     @staticmethod
     def write_data(tab_name, cur_data, db_tool, log_tool): # Inherided in LoadAverage.
+        ''' Write data to database. '''
 
         #----------- Calculate string for insertion -----------------
         fields = u'('
@@ -59,12 +61,34 @@ class CpuTemp(object):
         #------------------------------------------------------------
 
         db_tool.insert_into( tab_name, fields, values )
+
+    
+    @staticmethod
+    def read_db_data(db_tool, conf):
+        ''' Reading data of database, and create dict with data. '''
+
+        cpu_temp_data = {}
+
+        # TODO: ---- Get sensors number. ---------------------------
+        #data = conf.items(u'CpuTemp') 
+        number_of_sensors = 0
+        sensors_pattern = re.compile(u'sensor\d')
+        for item in conf.items(u'CpuTemp'):
+            if sensors_pattern.search(item[0]):
+                number_of_sensors += 1
+
+        ##
+        print number_of_sensors
+        ##
+            
+        #-----------------------------------------------------------
     
 
 class LoadAverage(CpuTemp):
     
     @staticmethod
     def get_data(config_file, log_tool):
+        ''' Read data from file. '''
 
         load_avg_data = {}
 
@@ -101,8 +125,10 @@ class Regular_Task(object):
         self.__log_tool     = log_tool
         self.__db_tool      = db_tool
 
-    
-    def read_data(self):
+
+    #----------------- Methods for store data to database. ----------------------------------------------------------
+    #def read_data(self):
+    def reading_data_from_file(self):
         self.__log_tool.debug([u'Reading data for [%s] task.', self.__task_name])
 
         if self.__task_name == u'CpuTemp':
@@ -112,7 +138,8 @@ class Regular_Task(object):
             self.__cur_data = LoadAverage.get_data(self.__config, self.__log_tool)
 
 
-    def write_data(self):
+    #def write_data(self):
+    def write_data_to_db(self):
         self.__log_tool.debug([u'Write data for [%s] task.', self.__task_name])
 
         if self.__task_name == u'CpuTemp':
@@ -120,5 +147,17 @@ class Regular_Task(object):
 
         elif self.__task_name == u'LoadAverage':
             LoadAverage.write_data( u'LoadAverage', self.__cur_data, self.__db_tool, self.__log_tool )
+    #----------------------------------------------------------------------------------------------------------------
 
+
+    #----------------- Methods for retrive data from database. ------------------------------------------------------
+    def retrive_data(self):
+        self.__log_tool.debug( [u'Retrive data for [%s] task.', self.__task_name] )
+
+        if self.__task_name == u'CpuTemp':
+            self.__cur_data = CpuTemp.read_db_data( self.__db_tool, self.__config )
+
+    def draw_data(self):
+        self.__log_tool.debug( [u'Drawing data for [%s] task.', self.__task_name] )
+    #----------------------------------------------------------------------------------------------------------------
 

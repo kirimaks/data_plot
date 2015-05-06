@@ -1,109 +1,56 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
-import sqlite3
-import config
+import time
+
+time_begin = time.time()
+
 import tools
 import argparse
-from drawing import draw_data
+import task_types
+import ConfigParser
 
-time_begin = tools.time.time()
 
-def get_data_from_db(task, cur_con, rows_limit, tab_col = None):
+def arguments_analysis():
+    args = argparse.ArgumentParser(description=u'Reading database and create graphics.')
+    args.add_argument(u'-v', '--version',         action=u'version',     version='%(prog)s 2.0')
+    args.add_argument(u'-d', dest=u'debug_mode',  action=u'store_true',  help=u'Debug mode (default mode is INFO).')
+    args.add_argument(u'-c', dest=u'config_file', metavar=u'config.cfg', required=True, help=u'Configuration file.')
+    cmdargs = args.parse_args()
+
+    return args.parse_args()
+
+
+def config_analysis(config_file):
+    config = ConfigParser.RawConfigParser()
+    config.read(config_file)
+
+    return config
+
+
+if __name__ == '__main__':
     
-    # Closure for "select_data" fuction.
-    select = lambda cols : tools.select_data(cur_con, task[u'title'], cols, rows_limit)
+    #------------- Preparations. ----------------------------------------------------------
+    cmdargs  = arguments_analysis()
+    conf     = config_analysis(cmdargs.config_file)
+    log_tool = tools.Log_tool(cmdargs.debug_mode)
+    db_tool  = tools.Db_tool(db_dir = conf.get(u'Basic', u'workdir'), log_tool = log_tool)
+    #--------------------------------------------------------------------------------------
 
-    data = { 
-        u'Time': [], 
-        u'f1'  : [],
-        u'f2'  : [], 
-        u'f3'  : [], 
-        u'f4'  : [],
-    }
+    
+    for cur_task in conf.sections()[1:]:
+        log_tool.debug([u'Processing for [%s]', cur_task])
 
-    if task[u'title'] == u'cpu_temp':
-        #tools.select_data(cur_con, task[u'title'], u'Time,Temp', rows_limit)
-        select(u'Time,Temp')
+        ### Processing for network interface. ###
+        if cur_task in conf.get(u'Basic', u'network_interfaces'): 
+            net_task = task_types.Network_Task( cur_task, conf, log_tool, db_tool )
+            net_task.retrive_data()
+            net_task.draw_data()
+        
+        ### Processing for regular file. ###
+        else:
+            reg_task = task_types.Regular_Task( cur_task, conf, log_tool, db_tool )
+            reg_task.retrive_data()
+            reg_task.draw_data()
 
-        tmp = cur_con.fetchone()
-        while tmp != None:
-            data[u'Time'].insert(0,tmp[0])
-            data[u'f1'].insert(0,tmp[1])
-            tmp = cur_con.fetchone()
-
-
-    elif task[u'title'] == u'load_average':
-        #tools.select_data(cur_con, task[u'title'], u'Time,min_1,min_5,min_15', rows_limit)
-        select(u'Time,min_1,min_5,min_15')
-
-        tmp = cur_con.fetchone()
-        while tmp != None:
-            data[u'Time'].insert(0,tmp[0])
-            data[u'f1'].insert(0,tmp[1])
-            data[u'f2'].insert(0,tmp[2])
-            data[u'f3'].insert(0,tmp[3])
-            tmp = cur_con.fetchone()
-
-
-    elif task[u'title'] == u'network_statistic':
-
-        for fl in task[u'in_file']:
-            cur_col = tab_col + '_' + fl[0:2]
-            #tools.select_data(cur_con, task[u'title'], u'Time,' + cur_col, rows_limit)
-            select(u'Time,' + cur_col)
-
-            tmp = cur_con.fetchone()
-            while tmp != None:
-                if fl == u'rx_bytes':
-                    data[u'Time'].insert(0,tmp[0])
-                    data[u'f1'].insert(0,tmp[1])
-                else:
-                    data[u'f2'].insert(0,tmp[1])
-
-                tmp = cur_con.fetchone()
-                
-
-    return data
-
-
-
-parser = argparse.ArgumentParser(description=u'Create graphics.', epilog=u'The End.')
-parser.add_argument(u'-m', type=int, default=120, help=u'set how many minutes to show.')
-cmdargs = parser.parse_args()
-
-
-tools.log.info(u'Show for %d minutes.', cmdargs.m)
-
-
-try:
-    tools.log.debug(u'Connect to: [%s]\n', config.dbfile) 
-    conn = sqlite3.connect(config.dbfile)
-
-    with conn:
-        cur_con = conn.cursor()
-
-        for task in config.tasks:
-            tools.log.info(u'Processing for (%s)', task[u'title'])
-
-            if task[u'title'] == u'network_statistic':
-                for iface in task[u'ifaces']:
-                    data = get_data_from_db(task, cur_con, cmdargs.m, tab_col = iface)
-                    draw_data(data, task, cmdargs.m, tab_col = iface)
-
-            else:
-                data = get_data_from_db(task, cur_con, cmdargs.m)
-                draw_data(data, task, cmdargs.m)
-
-
-except sqlite3.Error, e: 
-    print u'Error %s:', e.args[0]
-    sys.exit(1)
-
-finally:
-    if conn: conn.close()
-
-
-
-tools.log.info('(%s) execution time: [%s]\n', __file__, tools.time.time() - tools.time_begin)
+    log_tool.debug(['(%s) execution time: [%s]', __file__, time.time() - time_begin])

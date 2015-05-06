@@ -40,7 +40,9 @@ class Network_Task(object):
         self.__network_data = {}
 
 
-    def read_data(self):
+    #------------------ Store data. ---------------------------------------------------------------------------------
+    #def read_data(self):
+    def reading_data_from_file(self):
         # Reading data from network interface.
 
         list_of_stat_types = self.__config.get(u'Basic', u'network_stat_types').split(u',')
@@ -74,7 +76,8 @@ class Network_Task(object):
                 self.__network_data[io_path + stat_type] = data / 1024 if stat_type == u'bytes' else data
 
 
-    def write_data(self):
+    #def write_data(self):
+    def write_data_to_db(self):
         # Get interfaces id.
         Interface_data = Network_File.get_interface_id( self.__interface, self.__db_tool, self.__log_tool )
 
@@ -84,5 +87,15 @@ class Network_Task(object):
 
         # Write network_data.
         Network_File.write_data( u'Network_Statistic', self.__network_data, self.__db_tool, self.__log_tool )
+    #----------------------------------------------------------------------------------------------------------------
+
+
+    #--------- Retrive and draw data. -------------------------------------------------------------------------------
+    def retrive_data(self):
+        self.__log_tool.debug([u'Retrive data for [%s]', self.__interface])
+
+    def draw_data(self):
+        self.__log_tool.debug( [u'Rrawing data for [%s]', self.__interface] )
+    #----------------------------------------------------------------------------------------------------------------
 
 
