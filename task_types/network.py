@@ -93,6 +93,7 @@ class Network_Task(object):
     #--------- Retrive and draw data. -------------------------------------------------------------------------------
     def retrive_data(self):
         self.__log_tool.debug([u'Retrive data for [%s]', self.__interface])
+        
 
     def draw_data(self):
         self.__log_tool.debug( [u'Rrawing data for [%s]', self.__interface] )

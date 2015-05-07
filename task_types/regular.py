@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import re
+import tools
 
 class CpuTemp(object):
+    ''' Super class for everything. Many things inherit from here. '''
 
     # Reading and preparing data for CpuTemp task.
     @staticmethod
@@ -65,23 +67,39 @@ class CpuTemp(object):
     
     @staticmethod
     def read_db_data(db_tool, conf):
-        ''' Reading data of database, and create dict with data. '''
+        ''' Reading data from database, and create dict with data. '''
 
-        cpu_temp_data = {}
+        #--- Create string with fields and prepare data dict. ----------
+        cpu_temp_data = {u'Time' : [] }
+        fields = u'Time'
 
-        # TODO: ---- Get sensors number. ---------------------------
-        #data = conf.items(u'CpuTemp') 
-        number_of_sensors = 0
         sensors_pattern = re.compile(u'sensor\d')
-        for item in conf.items(u'CpuTemp'):
-            if sensors_pattern.search(item[0]):
-                number_of_sensors += 1
+        for section in list(conf.items(u'CpuTemp')):
+            if sensors_pattern.search(section[0]):
+                fields += ','
+                fields += section[0]
+                cpu_temp_data[section[0]] = []
 
-        ##
-        print number_of_sensors
-        ##
-            
-        #-----------------------------------------------------------
+        ### Generate list of fields ###
+        fields_list = fields.rsplit(u',')
+        #---------------------------------------------------------------
+
+        ### Reading by one row. ###
+        for row in db_tool.select(u'CpuTemp', fields + u',Id'):
+            n = 0
+            for field in fields_list:
+                cpu_temp_data[field].insert(0,row[n])  # Add data for particular dict value.
+                n += 1
+
+        return cpu_temp_data
+
+
+    # TODO: maybe delete it and call tools.Drawing from draw_data().
+    #@staticmethod
+    #def draw_to_file(data, conf, log_tool):
+    #    figure = tools.Drawing(u'CpuTemp', data, conf, log_tool)
+    #    figure.create_graph()
+        
     
 
 class LoadAverage(CpuTemp):
@@ -106,6 +124,28 @@ class LoadAverage(CpuTemp):
 
         return load_avg_data
 
+
+    @staticmethod
+    def read_db_data(db_tool, conf):
+        load_avg_data = { u'Time' : [], u'Load_1min' : [], u'Load_5min' : [], u'Load_15min' : [] }
+        fields = u'Time,Load_1min,Load_5min,Load_15min'
+        fields_list = fields.rsplit(u',')
+
+        ### Reading by one row. ###
+        for row in db_tool.select(u'LoadAverage', fields + u',Id'):
+            n = 0
+            for field in fields_list:
+                load_avg_data[field].insert(0, row[n])  # Add data for particular dict value.
+                n += 1
+
+        return load_avg_data
+        
+        
+    # TODO: maybe delete it and call tools.Drawing from draw_data().
+    #@staticmethod
+    #def draw_to_file(data, conf, log_tool):
+    #    figure = tools.Drawing(u'LoadAverage', data, conf, log_tool)
+    #    figure.create_graph()
 
 
 
@@ -157,7 +197,22 @@ class Regular_Task(object):
         if self.__task_name == u'CpuTemp':
             self.__cur_data = CpuTemp.read_db_data( self.__db_tool, self.__config )
 
+        elif self.__task_name == u'LoadAverage':
+            self.__cur_data = LoadAverage.read_db_data( self.__db_tool, self.__config )
+
+
     def draw_data(self):
         self.__log_tool.debug( [u'Drawing data for [%s] task.', self.__task_name] )
+        minuts = self.__db_tool.minuts_limit
+
+        if self.__task_name == u'CpuTemp':
+            #CpuTemp.draw_to_file( self.__cur_data, self.__config, self.__log_tool )
+            figure = tools.Drawing( u'CpuTemp', self.__cur_data, self.__config, self.__log_tool, minuts )
+            figure.create_graph()
+
+        elif self.__task_name == u'LoadAverage':
+            #LoadAverage.draw_to_file( self.__cur_data, self.__config, self.__log_tool )
+            figure = tools.Drawing( u'LoadAverage', self.__cur_data, self.__config, self.__log_tool, minuts )
+            figure.create_graph()
     #----------------------------------------------------------------------------------------------------------------
 

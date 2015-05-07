@@ -5,11 +5,12 @@ import re
 class Db_tool(object):
     # TODO: Add truncate_db method (keep database small size).
     
-    def __init__(self, db_dir, log_tool, config_file, recreate_db):
-        self.__log_tool = log_tool
-        self.__db_file  = u'data.db'    # Default database file name.
-        self.__db_path  = os.path.join(db_dir, self.__db_file)
-        self.__conf     = config_file
+    def __init__(self, db_dir, log_tool, config_file, recreate_db = False, min_limit = 10):
+        self.__log_tool  = log_tool
+        self.__db_file   = u'data.db'    # Default database file name (no reason to set in config file).
+        self.__db_path   = os.path.join(db_dir, self.__db_file)
+        self.__conf      = config_file
+        self.__minuts_limit = min_limit
 
         if not os.path.isfile(self.__db_path) or not os.path.isdir(db_dir) or recreate_db:
             self.initdb(db_dir, self.__db_path)
@@ -36,8 +37,8 @@ class Db_tool(object):
 
 
         #-------------- Create necessary tables. ----------------------------------------------
-        # TODO: generage sensors list from file. 
 
+        #------ Cpu Temp. -----------------------------
         ### Calculate number of sensors ###
         db_string = { u'Id' : u'INTEGER PRIMARY KEY', u'Time' : u'TEXT' } 
 
@@ -49,21 +50,7 @@ class Db_tool(object):
 
         self.create_table( u'CpuTemp', **db_string )
 
-        '''
-        self.create_table(  u'CpuTemp', 
-                            Id          = u'INTEGER PRIMARY KEY', 
-                            Time        = u'TEXT',
-                            Sensor0     = u'REAL', 
-                            Sensor1     = u'REAL', 
-                            Sensor2     = u'REAL', 
-                            Sensor3     = u'REAL', 
-                            Sensor4     = u'REAL', 
-                            Sensor5     = u'REAL', 
-                            Sensor6     = u'REAL', 
-                            Sensor7     = u'REAL' 
-        )
-        '''
-
+        #------ Load Average. -------------------------
         self.create_table(  u'LoadAverage', 
                             Id          = u'INTEGER PRIMARY KEY', 
                             Load_1min   = u'REAL', 
@@ -71,10 +58,12 @@ class Db_tool(object):
                             Load_15min  = u'REAL', 
                             Time        = u'TEXT' 
         )
+        #---- Network Interfaces. ---------------------
         self.create_table(  u'Network_Interfaces', 
                             Id      = u'INTEGER PRIMARY KEY', 
                             Name    = u'TEXT' 
         ) 
+        #------ Network Statistic. --------------------
         self.create_table(  u'Network_Statistic', 
                             Id          = u'INTEGER PRIMARY KEY', 
                             InterfaceId = u'INTEGER',
@@ -135,5 +124,22 @@ class Db_tool(object):
             self.__log_tool.debug(['%s', cmd])
             return cur.execute(cmd)
 
-if __name__ == u'__main__':
-    print u'Test'
+    def select( self, tab_name, cols ):
+        cmd = u'SELECT ' + cols + u' FROM ' + tab_name + u' ORDER BY Id DESC LIMIT ' + unicode(self.__minuts_limit)
+        self.__log_tool.debug(['%s', cmd])
+        with self.db_path as conn:
+            cur = conn.cursor()
+            cur.execute(cmd)
+    
+            while True:
+                data = cur.fetchone()
+                if data == None:
+                    break
+                yield data
+
+    @property
+    def minuts_limit(self):
+        return self.__minuts_limit
+
+#if __name__ == u'__main__':
+#    print u'Test'

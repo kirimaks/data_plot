@@ -13,9 +13,10 @@ import ConfigParser
 
 def arguments_analysis():
     args = argparse.ArgumentParser(description=u'Reading database and create graphics.')
-    args.add_argument(u'-v', '--version',         action=u'version',     version='%(prog)s 2.0')
-    args.add_argument(u'-d', dest=u'debug_mode',  action=u'store_true',  help=u'Debug mode (default mode is INFO).')
-    args.add_argument(u'-c', dest=u'config_file', metavar=u'config.cfg', required=True, help=u'Configuration file.')
+    args.add_argument(u'-v', '--version',          action=u'version',        version='%(prog)s 2.0'                     )
+    args.add_argument(u'-d', dest=u'debug_mode',   action=u'store_true',     help=u'Debug mode (default mode is INFO).' )
+    args.add_argument(u'-c', dest=u'config_file',  metavar=u'config.cfg',    required=True, help=u'Configuration file.' )
+    args.add_argument(u'-m', dest=u'minuts_limit', metavar=u'M', default=10, help=u'Minuts limit (default 10).'         )
     cmdargs = args.parse_args()
 
     return args.parse_args()
@@ -34,7 +35,7 @@ if __name__ == '__main__':
     cmdargs  = arguments_analysis()
     conf     = config_analysis(cmdargs.config_file)
     log_tool = tools.Log_tool(cmdargs.debug_mode)
-    db_tool  = tools.Db_tool(db_dir = conf.get(u'Basic', u'workdir'), log_tool = log_tool)
+    db_tool  = tools.Db_tool(db_dir = conf.get(u'Basic', u'workdir'), log_tool = log_tool, config_file = conf, min_limit = cmdargs.minuts_limit )
     #--------------------------------------------------------------------------------------
 
     
