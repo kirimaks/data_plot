@@ -11,6 +11,9 @@ class Drawing(object):
         self.__output_file = os.path.join(conf.get(u'Basic', u'workdir'), conf.get(task_name, u'graph_file'))
         self.__minuts      = minuts
 
+        if int(self.__minuts) <= 5:
+            self.__log_tool.crit([u'Too few minutes. Exit.....'])
+
         
     def create_graph(self):
         self.__log_tool.debug( [u'Write data for [%s] to [%s]', self.__task_name, self.__output_file] )

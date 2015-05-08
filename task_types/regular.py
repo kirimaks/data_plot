@@ -67,7 +67,7 @@ class CpuTemp(object):
     
     @staticmethod
     def read_db_data(db_tool, conf):
-        ''' Reading data from database, and create dict with data. '''
+        ''' Reading data from database, and create dict with data (For CpuTemp only). '''
 
         #--- Create string with fields and prepare data dict. ----------
         cpu_temp_data = {u'Time' : [] }
@@ -76,8 +76,8 @@ class CpuTemp(object):
         sensors_pattern = re.compile(u'sensor\d')
         for section in list(conf.items(u'CpuTemp')):
             if sensors_pattern.search(section[0]):
-                fields += ','
-                fields += section[0]
+                fields += ',' 
+                fields += section[0] 
                 cpu_temp_data[section[0]] = []
 
         ### Generate list of fields ###
@@ -93,14 +93,6 @@ class CpuTemp(object):
 
         return cpu_temp_data
 
-
-    # TODO: maybe delete it and call tools.Drawing from draw_data().
-    #@staticmethod
-    #def draw_to_file(data, conf, log_tool):
-    #    figure = tools.Drawing(u'CpuTemp', data, conf, log_tool)
-    #    figure.create_graph()
-        
-    
 
 class LoadAverage(CpuTemp):
     
@@ -141,13 +133,6 @@ class LoadAverage(CpuTemp):
         return load_avg_data
         
         
-    # TODO: maybe delete it and call tools.Drawing from draw_data().
-    #@staticmethod
-    #def draw_to_file(data, conf, log_tool):
-    #    figure = tools.Drawing(u'LoadAverage', data, conf, log_tool)
-    #    figure.create_graph()
-
-
 
 
 class Regular_Task(object):
@@ -167,7 +152,6 @@ class Regular_Task(object):
 
 
     #----------------- Methods for store data to database. ----------------------------------------------------------
-    #def read_data(self):
     def reading_data_from_file(self):
         self.__log_tool.debug([u'Reading data for [%s] task.', self.__task_name])
 
@@ -178,7 +162,6 @@ class Regular_Task(object):
             self.__cur_data = LoadAverage.get_data(self.__config, self.__log_tool)
 
 
-    #def write_data(self):
     def write_data_to_db(self):
         self.__log_tool.debug([u'Write data for [%s] task.', self.__task_name])
 
@@ -206,12 +189,10 @@ class Regular_Task(object):
         minuts = self.__db_tool.minuts_limit
 
         if self.__task_name == u'CpuTemp':
-            #CpuTemp.draw_to_file( self.__cur_data, self.__config, self.__log_tool )
             figure = tools.Drawing( u'CpuTemp', self.__cur_data, self.__config, self.__log_tool, minuts )
             figure.create_graph()
 
         elif self.__task_name == u'LoadAverage':
-            #LoadAverage.draw_to_file( self.__cur_data, self.__config, self.__log_tool )
             figure = tools.Drawing( u'LoadAverage', self.__cur_data, self.__config, self.__log_tool, minuts )
             figure.create_graph()
     #----------------------------------------------------------------------------------------------------------------

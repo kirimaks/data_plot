@@ -141,5 +141,20 @@ class Db_tool(object):
     def minuts_limit(self):
         return self.__minuts_limit
 
+    def select_for_interface(self, cols, interface_name ):
+
+        cmd = u'SELECT ' + cols + u' FROM ' + u'Network_Statistic' + u' JOIN Network_Interfaces ON Network_Statistic.InterfaceId == Network_Interfaces.Id WHERE Network_Interfaces.Name == ' + u'"' + interface_name + u'"' + u' ORDER BY Network_Statistic.Id DESC LIMIT ' + unicode(self.__minuts_limit)
+        self.__log_tool.debug(['%s', cmd])
+    
+        with self.db_path as conn:
+            cur = conn.cursor()
+            cur.execute(cmd)
+
+            while True:
+                data = cur.fetchone()
+                if data == None:
+                    break
+                yield data
+
 #if __name__ == u'__main__':
 #    print u'Test'
